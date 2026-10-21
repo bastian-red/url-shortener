@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bastian-red/url-shortener/contracts/link-cache.schema.json",
+  "title": "LinkCache",
+  "description": "The Redis hash at l:{slug}. Written by apps/api (write-through) and by services/redirect on a miss. Times are epoch milliseconds, \"0\" meaning none.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "url", "exp", "max", "dis", "nf"],
+  "properties": {
+    "id": { "type": "string" },
+    "url": { "type": "string" },
+    "exp": { "type": "string", "pattern": "^[0-9]+$" },
+    "max": { "type": "string", "pattern": "^[0-9]+$" },
+    "dis": { "enum": ["0", "1"] },
+    "nf": { "enum": ["0", "1"], "description": "1 = negative cache: the slug does not exist." }
+  }
+}

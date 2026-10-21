@@ -1,0 +1,13 @@
+{
+  "name": "@links/redirect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The redirect hot path, in Go. This manifest exists so turbo and `pnpm dev` drive it like every other workspace; the build is `go build`.",
+  "scripts": {
+    "dev": "go run ./cmd/redirect",
+    "build": "CGO_ENABLED=0 go build -trimpath -o bin/redirect ./cmd/redirect",
+    "typecheck": "go vet ./...",
+    "test": "go test ./internal/...",
+    "test:integration": "go test -count=1 -race ./internal/... ./loadtest/..."
+  }
+}

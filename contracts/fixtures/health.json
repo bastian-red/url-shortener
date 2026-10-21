@@ -1,0 +1,10 @@
+{
+  "status": "degraded",
+  "service": "redirect",
+  "version": "0.1.0",
+  "uptimeSeconds": 42,
+  "checks": [
+    { "name": "redis", "status": "ok", "latencyMs": 1, "detail": null },
+    { "name": "postgres", "status": "fail", "latencyMs": 1000, "detail": "timeout after 1000ms" }
+  ]
+}

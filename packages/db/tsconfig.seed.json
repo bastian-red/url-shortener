@@ -1,0 +1,9 @@
+{
+  "extends": "@links/config/tsconfig.node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["prisma/seed.mts", "prisma/recount.mts"]
+}

@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1.7
+#
+# services/click-worker, multi-stage. Build from the REPO ROOT:
+#   docker build -f infra/Dockerfile.worker -t shortener-worker .
+#
+# The geolocation database is NOT baked in: it is licensed separately (DB-IP,
+# CC BY 4.0), 120 MB, and refreshed monthly. Compose mounts the repo's data/
+# read-only; without it the worker still records every click, with an unknown
+# country, and its /health says why.
+
+FROM node:20-bookworm-slim AS base
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+WORKDIR /repo
+
+FROM base AS fetch
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch --ignore-scripts
+
+FROM fetch AS build
+COPY . .
+RUN pnpm install --frozen-lockfile --offline --ignore-scripts
+RUN pnpm exec turbo run build --filter=@links/click-worker...
+
+FROM build AS prod-deps
+RUN pnpm --filter @links/click-worker deploy --prod /prod/worker
+RUN test -f /prod/worker/dist/main.js || \
+  (echo "prod-deps: /prod/worker/dist/main.js is missing after pnpm deploy." >&2 && exit 1)
+
+FROM node:20-bookworm-slim AS runtime
+RUN groupadd --gid 1001 app \
+  && useradd --uid 1001 --gid app --shell /usr/sbin/nologin --no-create-home app
+WORKDIR /app
+COPY --from=prod-deps --chown=app:app /prod/worker ./
+USER app
+ENV NODE_ENV=production
+ENV GEOIP_DB_PATH=/data/dbip-city-lite.mmdb
+EXPOSE 4100
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.WORKER_HEALTH_PORT||4100)+'/health',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+CMD ["node", "dist/main.js"]

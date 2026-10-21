@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bastian-red/url-shortener/contracts/click-event.schema.json",
+  "title": "ClickEvent",
+  "description": "One entry on the `clicks` Redis Stream. Written by services/redirect (Go), read by services/click-worker (Node). Every field is a string because stream fields are strings; absent values are the empty string.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "link", "slug", "ts", "ip", "ua", "ref", "lang"],
+  "properties": {
+    "v": { "const": "1", "description": "Contract version." },
+    "link": { "type": "string", "minLength": 1, "description": "Link id (cuid)." },
+    "slug": { "type": "string", "minLength": 1 },
+    "ts": { "type": "string", "pattern": "^[0-9]+$", "description": "Epoch milliseconds." },
+    "ip": { "type": "string", "maxLength": 45, "description": "Client address. Never persisted." },
+    "ua": { "type": "string", "maxLength": 512 },
+    "ref": { "type": "string", "maxLength": 512 },
+    "lang": { "type": "string", "maxLength": 64 }
+  }
+}

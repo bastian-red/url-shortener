@@ -1,0 +1,107 @@
+// url-shortener schema.
+//
+// Three things about this file are load-bearing and are explained where they
+// appear rather than here:
+//
+//   1. The redirect hot path never reads this database on a cache hit. `links`
+//      is the source of truth the Redis cache is rebuilt from, nothing more.
+//   2. Raw clicks live in `clicks`, a table range-partitioned by month that
+//      Prisma cannot express. It and `visitor_hours` are created by the
+//      `20261021120100_click_pipeline` migration and written by
+//      services/click-worker over plain `pg`, never through this client.
+//   3. Reports read the two rollup tables modelled below, maintained in the
+//      same transaction as the raw insert, which is what keeps a report at a
+//      million clicks inside its budget.
+//
+// `prisma migrate dev` is deliberately `--create-only` in package.json, so a
+// generated migration is reviewed before it can drop a hand-written object.
+
+generator client {
+  // Generated INTO the package, not into node_modules. `pnpm deploy --prod` in a
+  // Docker build rebuilds node_modules and drops a client generated there, and
+  // the failure appears only in the image.
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Migrations cannot run through a transaction-mode pooler. Locally both names
+  // point at the same server; the split exists so it can be made without a code
+  // change.
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique(map: "users_email_key")
+  name         String
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  links        Link[]
+
+  @@map("users")
+}
+
+model Link {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Case-sensitive (Postgres text equality), like the redirect lookup.
+  //
+  // A deleted link keeps its row (`deleted_at`) and therefore its slug. Freeing
+  // the slug would let the next person to claim it receive every scan of a QR
+  // code somebody else printed, which is a takeover, not a feature.
+  slug      String    @unique(map: "links_slug_key")
+  url       String
+  title     String?
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(3)
+  maxClicks Int?      @map("max_clicks")
+  disabled  Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  hours   LinkHour[]
+  rollups ClickRollup[]
+
+  // The ledger lists a user's live links newest first.
+  @@index([userId, createdAt(sort: Desc)], map: "links_user_created_idx")
+  @@map("links")
+}
+
+/// One row per link per hour that saw a click: the time series, the totals and
+/// the 24-hour sparkline all read this table.
+model LinkHour {
+  linkId   String   @map("link_id")
+  link     Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  hour     DateTime @db.Timestamptz(3)
+  /// Human clicks.
+  clicks   Int      @default(0)
+  bots     Int      @default(0)
+  /// Distinct human visitors in this hour (`visitor_hours` is the set).
+  visitors Int      @default(0)
+
+  @@id([linkId, hour], map: "link_hours_pkey")
+  @@map("link_hours")
+}
+
+/// One row per link, hour, bot flag and dimension value: the breakdowns read
+/// this table. A row per DIMENSION, not per combination of dimensions: the
+/// cross product (country x device x browser x os x referrer) would be nearly
+/// one row per click, which is not a rollup.
+model ClickRollup {
+  linkId    String   @map("link_id")
+  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  hour      DateTime @db.Timestamptz(3)
+  isBot     Boolean  @map("is_bot")
+  /// country | device | browser | os | referrer
+  dimension String
+  /// The value. `""` is unknown.
+  key       String
+  clicks    Int      @default(0)
+
+  @@id([linkId, hour, isBot, dimension, key], map: "click_rollups_pkey")
+  @@map("click_rollups")
+}

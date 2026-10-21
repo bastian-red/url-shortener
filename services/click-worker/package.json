@@ -1,0 +1,42 @@
+{
+  "name": "@links/click-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Consumes the clicks Redis Stream, enriches each click (geo, device, bot, visitor hash), writes raw clicks and rollups to Postgres in one transaction, and publishes the live feed.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@links/shared": "workspace:*",
+    "ioredis": "^5.4.1",
+    "isbot": "^5.1.17",
+    "maxmind": "^4.3.22",
+    "pg": "^8.13.1",
+    "ua-parser-js": "^1.0.39",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@links/config": "workspace:*",
+    "@types/node": "^20.17.6",
+    "@types/pg": "^8.11.10",
+    "@types/ua-parser-js": "^0.7.39",
+    "fast-check": "^3.23.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

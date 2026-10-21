@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bastian-red/url-shortener/contracts/health.schema.json",
+  "title": "Health",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "service", "version", "uptimeSeconds", "checks"],
+  "properties": {
+    "status": { "enum": ["ok", "degraded"] },
+    "service": { "enum": ["api", "redirect", "click-worker"] },
+    "version": { "type": "string" },
+    "uptimeSeconds": { "type": "integer", "minimum": 0 },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "latencyMs", "detail"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["ok", "fail"] },
+          "latencyMs": { "type": "integer", "minimum": 0 },
+          "detail": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

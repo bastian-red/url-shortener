@@ -1,0 +1,182 @@
+# The datastores are always on; the application services live behind the `app`
+# profile so `docker compose up -d` gives you what `pnpm dev` needs and nothing
+# else.
+#
+#   docker compose -f infra/docker-compose.yml up -d              # postgres + redis
+#   docker compose -f infra/docker-compose.yml --profile app up -d --build
+
+# Explicit, and not optional. Without it Compose derives the project name from the
+# containing directory, which is `infra` in every project in this portfolio, and
+# bringing up a second stack evicts the first one's containers AND its volumes.
+name: shortener
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shortener-postgres
+    # A smaller WAL ceiling than the 1 GB default. The integration lane writes a
+    # million clicks in one test; with the default, Postgres keeps up to a
+    # gigabyte of WAL before recycling any, which is more than a modest Docker
+    # disk has, and a full disk crashes the server mid-test. 256 MB just means
+    # more frequent checkpoints, which a development database does not notice.
+    command: ['postgres', '-c', 'max_wal_size=256MB']
+    environment:
+      POSTGRES_USER: links
+      POSTGRES_PASSWORD: links
+      POSTGRES_DB: links
+    # 5432 is the dev host's own PostgreSQL and 5433-5441 belong to the sibling
+    # portfolio stacks, so this project takes 5442 and every URL in .env.example
+    # matches.
+    ports:
+      - '5442:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U links -d links']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: shortener-redis
+    # Redis is on the hot path here, unlike the siblings: it holds the link cache
+    # every redirect answers from, the click-limit counters, the rate-limit
+    # buckets and the click stream. The cache rebuilds itself from Postgres on a
+    # miss, but the stream holds clicks not yet written to Postgres and the
+    # counters enforce click limits, so append-only persistence is on: a restart
+    # must not lose either.
+    command: ['redis-server', '--appendonly', 'yes', '--appendfsync', 'everysec']
+    ports:
+      - '6388:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- The application, behind the `app` profile --------------------------------
+  #
+  #   docker compose -f infra/docker-compose.yml --profile app up -d --build
+  #
+  # Inside the network the services reach the datastores and each other by name,
+  # so the URLs below override the localhost ones .env carries for `pnpm dev`.
+  # Everything else (the secrets, the tuning knobs) comes from ../.env unchanged.
+
+  # One-shot: apply migrations and seed the demo workspace, then exit. Built from
+  # the api Dockerfile's `build` stage, which still has the Prisma CLI and tsx.
+  migrate:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+      target: build
+    image: shortener-migrate
+    container_name: shortener-migrate
+    profiles: ['app']
+    env_file:
+      - ../.env
+    environment: &datastores
+      DATABASE_URL: postgresql://links:links@postgres:5432/links?schema=public
+      DIRECT_DATABASE_URL: postgresql://links:links@postgres:5432/links?schema=public
+      REDIS_URL: redis://redis:6379
+    command:
+      [
+        'sh',
+        '-c',
+        'pnpm --filter @links/db exec prisma migrate deploy && pnpm --filter @links/db run seed',
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redirect:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.redirect
+    image: shortener-redirect
+    container_name: shortener-redirect
+    profiles: ['app']
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      <<: *datastores
+      REDIRECT_PORT: '8080'
+    ports:
+      - '8080:8080'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+    image: shortener-worker
+    container_name: shortener-worker
+    profiles: ['app']
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      <<: *datastores
+      GEOIP_DB_PATH: /data/dbip-city-lite.mmdb
+      WORKER_HEALTH_PORT: '4100'
+    volumes:
+      # `pnpm geo:download` fills it. Read-only: the worker never writes here.
+      - ../data:/data:ro
+    ports:
+      - '4100:4100'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    image: shortener-api
+    container_name: shortener-api
+    profiles: ['app']
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      <<: *datastores
+      PORT: ''
+      API_PORT: '4000'
+      REDIRECT_INTERNAL_URL: http://redirect:8080
+      WORKER_INTERNAL_URL: http://worker:4100
+    ports:
+      - '4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    image: shortener-web
+    container_name: shortener-web
+    profiles: ['app']
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      PORT: '3000'
+      API_BASE_URL: http://api:4000
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

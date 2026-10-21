@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1.7
+#
+# services/redirect (Go). Build from the REPO ROOT:
+#   docker build -f infra/Dockerfile.redirect -t shortener-redirect .
+#
+# A static binary on distroless: no shell, no package manager, no libc, about
+# 15 MB. The hot path is one process with one dependency on the network (Redis),
+# so nothing else belongs in the image.
+
+FROM golang:1.27-alpine AS build
+WORKDIR /src
+# Modules first, on their own layer: a code change does not re-download them.
+COPY services/redirect/go.mod services/redirect/go.sum ./
+RUN go mod download
+COPY services/redirect/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/redirect ./cmd/redirect
+
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+COPY --from=build /out/redirect /redirect
+USER nonroot:nonroot
+EXPOSE 8080
+# Distroless has no shell and no curl, so the binary checks itself: `redirect
+# healthcheck` GETs its own /health and exits 0 only on a 200, which requires
+# Redis AND Postgres to answer.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 CMD ["/redirect", "healthcheck"]
+ENTRYPOINT ["/redirect"]

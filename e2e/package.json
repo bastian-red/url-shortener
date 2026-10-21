@@ -1,0 +1,19 @@
+{
+  "name": "@links/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@links/config": "workspace:*",
+    "@links/shared": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^20.17.6",
+    "@types/pngjs": "^6.0.5",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.6.3"
+  }
+}

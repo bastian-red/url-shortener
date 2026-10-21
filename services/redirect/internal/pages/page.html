@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}} · Short links</title>
+<style>
+/* Tokens copied from apps/web/app/globals.css. apps/web/lib/redirect-pages.test.ts
+   fails if any value here drifts from the stylesheet, and the E2E axe run
+   covers this page in both schemes. No web fonts: an error page should not
+   send a visitor's address to a font host. */
+:root {
+  --bg: #f6f0ee;
+  --surface: #fffbfa;
+  --text: #231a18;
+  --muted: #6a5a55;
+  --accent: #b33a12;
+  --border: #8a7671;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1517;
+    --surface: #152023;
+    --text: #eef3f2;
+    --muted: #9fb1b2;
+    --accent: #ff8a5c;
+    --border: #6c8286;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+  background: var(--bg); color: var(--text);
+  font: 16px/1.5 "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main {
+  width: 100%; max-width: 520px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 32px 28px;
+}
+.code {
+  display: inline-flex; gap: 8px; align-items: center; margin: 0 0 16px;
+  font: 600 13px/1 "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted); letter-spacing: .02em;
+}
+.glyph { font-size: 18px; color: var(--accent); }
+h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: -.01em; }
+p { margin: 0 0 20px; color: var(--muted); }
+.slug { font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); overflow-wrap: anywhere; }
+a { color: var(--accent); font-weight: 600; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<main>
+<p class="code"><span class="glyph" aria-hidden="true">{{.Glyph}}</span><span>{{.Status}} · {{.Word}}</span></p>
+<h1>{{.Title}}</h1>
+<p>{{.Message}}{{if .Slug}} <span class="slug">/{{.Slug}}</span>{{end}}</p>
+<a href="{{.Home}}">Make your own short link</a>
+</main>
+</body>
+</html>
