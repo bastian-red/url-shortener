@@ -155,20 +155,23 @@ describe('one visit, end to end', () => {
       await visit(link.body.slug, {
         userAgent: 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
       });
-    const read = await eventually(
+    // Wait for BOTH counts: the worker may commit the humans and the bots in
+    // different batches, and asserting the bots the moment the humans landed
+    // raced on CI.
+    const hours = await eventually(
       async () => {
-        const r = await call<Link>(harness, 'GET', `/links/${link.body.id}`, { user: owner });
-        return r.body.clicks === 20 ? r : undefined;
+        const sum = await harness.db.linkHour.aggregate({
+          where: { linkId: link.body.id },
+          _sum: { clicks: true, bots: true },
+        });
+        return sum._sum.clicks === 20 && sum._sum.bots === 3 ? sum._sum : undefined;
       },
       5000,
-      '20 human clicks',
+      '20 human and 3 bot clicks',
     );
+    expect(hours).toEqual({ clicks: 20, bots: 3 });
+    const read = await call<Link>(harness, 'GET', `/links/${link.body.id}`, { user: owner });
     expect(read.body.clicks).toBe(20);
-    const hours = await harness.db.linkHour.aggregate({
-      where: { linkId: link.body.id },
-      _sum: { clicks: true, bots: true },
-    });
-    expect(hours._sum).toEqual({ clicks: 20, bots: 3 });
   });
 });
 

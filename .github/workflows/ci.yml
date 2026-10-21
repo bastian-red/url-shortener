@@ -238,6 +238,12 @@ jobs:
       - run: pnpm db:seed
       # Cold runner, nothing built: dev's ^build dependency has to do it all.
       - run: WAIT_SECONDS=300 ./scripts/dev-smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: dev-smoke-log
+          path: /tmp/shortener-dev-smoke.log
+          retention-days: 7
 
   e2e:
     name: E2E (Playwright, Chromium + Firefox, axe in both schemes)

@@ -98,4 +98,7 @@ check_reachable "${REDIS_URL:-}" Redis || failed=1
 
 # `exec` so Ctrl-C reaches turbo directly and the persistent tasks shut down
 # cleanly instead of being orphaned behind a wrapper shell.
-exec pnpm exec turbo run dev "$@"
+# --log-order=stream: under GITHUB_ACTIONS turbo otherwise groups each task's
+# output until the task ends, and a dev server never ends, so a crashing web
+# app would print nothing at all in CI.
+exec pnpm exec turbo run dev --log-order=stream "$@"

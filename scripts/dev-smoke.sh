@@ -107,14 +107,14 @@ wait_for() {
   for ((i = 0; i < WAIT_SECONDS; i++)); do
     curl -sf -o /dev/null "$url" 2>/dev/null && return 0
     if ! kill -0 "$DEV_PID" 2>/dev/null; then
-      echo "pnpm dev exited before ${name} came up. Last 40 lines of ${LOG}:" >&2
-      tail -40 "$LOG" >&2
+      echo "pnpm dev exited before ${name} came up. Last 150 lines of ${LOG}:" >&2
+      tail -150 "$LOG" >&2
       exit 1
     fi
     sleep 1
   done
-  echo "${name} never came up at ${url} within ${WAIT_SECONDS}s. Last 40 lines of ${LOG}:" >&2
-  tail -40 "$LOG" >&2
+  echo "${name} never came up at ${url} within ${WAIT_SECONDS}s. Last 150 lines of ${LOG}:" >&2
+  tail -150 "$LOG" >&2
   exit 1
 }
 echo "==> Waiting for api, web, redirect and worker"
@@ -149,14 +149,14 @@ curl -s -o /dev/null -L -c "$COOKIES" -b "$COOKIES" \
   "${APP_BASE_URL}/api/auth/callback/credentials"
 session="$(curl -s -c "$COOKIES" -b "$COOKIES" "${APP_BASE_URL}/api/auth/session")"
 grep -qF "$DEMO_EMAIL" <<<"$session" || {
-  tail -40 "$LOG" >&2
+  tail -150 "$LOG" >&2
   die "sign-in produced no session (${session}). AUTH_SECRET never reached a process, or the seed did not run."
 }
 
 echo "==> Checking the ledger renders the seeded hero link"
 list="$(curl -s -L -b "$COOKIES" -c "$COOKIES" "${APP_BASE_URL}/")"
 grep -qF "$HERO_TITLE" <<<"$list" || {
-  tail -40 "$LOG" >&2
+  tail -150 "$LOG" >&2
   die "/ does not contain '${HERO_TITLE}'. It is an error page or an empty shell."
 }
 LINK_ID="$(grep -o "href=\"/links/[a-z0-9]*\">${HERO_TITLE}<" <<<"$list" | head -1 | sed 's|href="/links/||; s|".*||')"
@@ -165,7 +165,7 @@ LINK_ID="$(grep -o "href=\"/links/[a-z0-9]*\">${HERO_TITLE}<" <<<"$list" | head 
 echo "==> Checking /links/${LINK_ID} renders a report from the rollups"
 detail="$(curl -s -L -b "$COOKIES" "${APP_BASE_URL}/links/${LINK_ID}?range=30d")"
 grep -qF "United States" <<<"$detail" || {
-  tail -40 "$LOG" >&2
+  tail -150 "$LOG" >&2
   die "the link page has no country breakdown. The analytics read path is broken."
 }
 
