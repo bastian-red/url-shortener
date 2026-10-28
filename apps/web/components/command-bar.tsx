@@ -206,4 +206,3 @@ export function CommandBar({ action, shortOrigin }: Props) {
     </section>
   );
 }
-

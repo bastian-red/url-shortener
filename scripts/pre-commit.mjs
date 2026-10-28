@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pre-commit gate. Four checks, all mandatory, none skippable with --no-verify
+ * Pre-commit gate. Six checks, all mandatory, none skippable with --no-verify
  * without also skipping the others:
  *
  *   1. gitleaks protect --staged  — secret detection is deterministic work, so it
@@ -12,8 +12,10 @@
  *   3. invisible-chars.mjs        — a character you cannot see is a bug you cannot
  *      review. Same reasoning: it turns an unreadable test failure into a named
  *      line and column.
- *   4. pnpm test                  — the gate lane only (fast, no network, no DB).
- *   5. gofmt, go vet, go test     — the redirect service's unit tests. Its Redis
+ *   4. prettier --check           — the same globs as CI's quality job, so a
+ *      formatting slip fails here in seconds instead of on CI.
+ *   5. pnpm test                  — the gate lane only (fast, no network, no DB).
+ *   6. gofmt, go vet, go test     — the redirect service's unit tests. Its Redis
  *      tests skip without REDIS_TEST_URL, so this stays free and offline.
  *
  * Integration, load and E2E are deliberately NOT here: they need Postgres,
@@ -58,6 +60,14 @@ const steps = [
     name: 'invisible characters',
     cmd: 'node',
     args: ['scripts/invisible-chars.mjs'],
+    required: true,
+  },
+  {
+    // The same check CI's quality job runs. Without it here, a redesign passed
+    // every local lane and went red on CI for formatting alone (2026-10-28).
+    name: 'prettier (format check, same globs as CI)',
+    cmd: 'pnpm',
+    args: ['exec', 'prettier', '--check', '--log-level', 'warn', '**/*.{ts,tsx,js,cjs,mjs,json}'],
     required: true,
   },
   {

@@ -48,7 +48,8 @@ test('create and copy in one paste: a URL pasted anywhere on the page is shorten
 }) => {
   // Chromium lets a test grant clipboard access and read it back; Firefox does
   // not, so there the strip's wording is the assertion.
-  if (browserName === 'chromium') await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  if (browserName === 'chromium')
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await signUpFresh(page, 'paste');
   // Focus is deliberately NOT in the field: the paste lands on the page body.
   await page.locator('.ledger-title').click();
@@ -75,7 +76,9 @@ test('create and copy in one paste: a URL pasted anywhere on the page is shorten
     await expect(page.locator('.created-label')).toHaveText(/copied to your clipboard/u);
   } else {
     // Whichever way the browser answered the write, the strip says it in words.
-    await expect(page.locator('.created-label')).toHaveText(/copied to your clipboard|Copy it below/u);
+    await expect(page.locator('.created-label')).toHaveText(
+      /copied to your clipboard|Copy it below/u,
+    );
   }
 
   // A sentence pasted onto the page is not a link and creates nothing.

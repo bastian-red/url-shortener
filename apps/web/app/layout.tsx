@@ -45,7 +45,11 @@ const ui = localFont({
 
 const mono = localFont({
   src: [
-    { path: './fonts/Overpass_Mono/OverpassMono-latin-wght.woff2', weight: '300 700', style: 'normal' },
+    {
+      path: './fonts/Overpass_Mono/OverpassMono-latin-wght.woff2',
+      weight: '300 700',
+      style: 'normal',
+    },
   ],
   display: 'swap',
   variable: '--font-mono',

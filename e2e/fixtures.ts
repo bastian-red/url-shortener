@@ -111,7 +111,10 @@ export async function shorten(
   await expect(created).toBeVisible();
   const shortUrl = (await created.innerText()).trim();
   const path =
-    (await page.locator('.created').getByRole('link', { name: 'Open its report' }).getAttribute('href')) ?? '';
+    (await page
+      .locator('.created')
+      .getByRole('link', { name: 'Open its report' })
+      .getAttribute('href')) ?? '';
   return { shortUrl, path };
 }
 

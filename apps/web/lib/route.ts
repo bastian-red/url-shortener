@@ -67,7 +67,9 @@ export function routeBoard(inbound: readonly RouteRow[], outbound: readonly Rout
         dir === 'in'
           ? `M0 ${String(fixed(y))} C${String(HUB_X * 0.55)} ${String(fixed(y))} ${String(HUB_X * 0.45)} ${String(hubY)} ${String(HUB_X)} ${String(hubY)}`
           : `M${String(HUB_X)} ${String(hubY)} C${String(HUB_X + HUB_X * 0.55)} ${String(hubY)} ${String(HUB_X + HUB_X * 0.45)} ${String(fixed(y))} ${String(BOARD_W)} ${String(fixed(y))}`;
-      return [{ key: row.key, side: dir, d, width: fixed(legWidth(row.clicks / max)), y: fixed(y) }];
+      return [
+        { key: row.key, side: dir, d, width: fixed(legWidth(row.clicks / max)), y: fixed(y) },
+      ];
     });
   };
   return { height, hubY, legs: [...side(inbound, 'in'), ...side(outbound, 'out')] };

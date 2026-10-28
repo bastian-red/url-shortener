@@ -20,7 +20,10 @@ test.describe('on a phone', () => {
         scroll: document.documentElement.scrollWidth,
         client: document.documentElement.clientWidth,
       }));
-      expect(scroll, `${name} is ${String(scroll - client)}px wider than the screen`).toBeLessThanOrEqual(client);
+      expect(
+        scroll,
+        `${name} is ${String(scroll - client)}px wider than the screen`,
+      ).toBeLessThanOrEqual(client);
     });
   }
 
@@ -37,11 +40,16 @@ test.describe('on a phone', () => {
         scroll: document.documentElement.scrollWidth,
         client: document.documentElement.clientWidth,
       }));
-      expect(scroll, `${page.url()} is ${String(scroll - client)}px wider than the screen`).toBeLessThanOrEqual(client);
+      expect(
+        scroll,
+        `${page.url()} is ${String(scroll - client)}px wider than the screen`,
+      ).toBeLessThanOrEqual(client);
     }
   });
 
-  test('the timeline axis stays readable: labels are drawn at 11px, not scaled down', async ({ page }) => {
+  test('the timeline axis stays readable: labels are drawn at 11px, not scaled down', async ({
+    page,
+  }) => {
     await signIn(page);
     await page.locator(`tr[data-slug="${HERO_SLUG}"] a.slug-pill`).click();
     const label = page.locator('.timeline .axis-label').first();

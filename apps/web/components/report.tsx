@@ -420,8 +420,13 @@ function topRows(report: Analytics, dimension: Dimension): { shown: Shown[]; tot
   const top = rows.slice(0, TOP_ROWS);
   const rest = rows.slice(TOP_ROWS);
   const other = rest.reduce((sum, r) => sum + r.clicks, 0);
-  const shown = top.map((r) => ({ key: r.key, label: dimensionLabel(dimension, r.key), clicks: r.clicks }));
-  if (other > 0) shown.push({ key: '__other', label: `Other (${String(rest.length)} more)`, clicks: other });
+  const shown = top.map((r) => ({
+    key: r.key,
+    label: dimensionLabel(dimension, r.key),
+    clicks: r.clicks,
+  }));
+  if (other > 0)
+    shown.push({ key: '__other', label: `Other (${String(rest.length)} more)`, clicks: other });
   return { shown, total };
 }
 
@@ -498,10 +503,7 @@ function RouteBoard({ slug, report }: { readonly slug: string; readonly report: 
   const outbound = topRows(report, 'country');
   const board = routeBoard(inbound.shown, outbound.shown);
   const empty = inbound.shown.length === 0 && outbound.shown.length === 0;
-  const side = (
-    dimension: 'referrer' | 'country',
-    data: { shown: Shown[]; total: number },
-  ) => {
+  const side = (dimension: 'referrer' | 'country', data: { shown: Shown[]; total: number }) => {
     const max = Math.max(1, ...data.shown.map((r) => r.clicks));
     return (
       <section
@@ -523,7 +525,11 @@ function RouteBoard({ slug, report }: { readonly slug: string; readonly report: 
   };
 
   return (
-    <section className="panel route-board" aria-labelledby="routes-title" style={{ gridColumn: '1 / -1' }}>
+    <section
+      className="panel route-board"
+      aria-labelledby="routes-title"
+      style={{ gridColumn: '1 / -1' }}
+    >
       <div className="panel-head">
         <h2 id="routes-title" className="panel-title">
           Where it travelled
@@ -537,11 +543,17 @@ function RouteBoard({ slug, report }: { readonly slug: string; readonly report: 
       ) : (
         <div
           className="route-grid"
-          style={{ ['--board-h' as string]: `${String(board.height)}px`, ['--row-h' as string]: `${String(ROW_H)}px` }}
+          style={{
+            ['--board-h' as string]: `${String(board.height)}px`,
+            ['--row-h' as string]: `${String(ROW_H)}px`,
+          }}
         >
           {side('referrer', inbound)}
           <div className="route-map" aria-hidden="true">
-            <svg viewBox={`0 0 ${String(BOARD_W)} ${String(board.height)}`} preserveAspectRatio="none">
+            <svg
+              viewBox={`0 0 ${String(BOARD_W)} ${String(board.height)}`}
+              preserveAspectRatio="none"
+            >
               {board.legs.map((leg) => (
                 <path
                   key={`${leg.side}:${leg.key}`}
