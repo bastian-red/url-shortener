@@ -1,18 +1,20 @@
 import Link from 'next/link';
 
-/** The wordmark: a short arrow leaving a pill, which is what a short link does. */
+/** The wordmark: two airports and the route arc between them, which is what a short link is. */
 export function Brand({ href = '/' }: { readonly href?: string }) {
   return (
     <Link className="brand" href={href}>
-      <svg className="brand-mark" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+      <svg className="brand-mark" viewBox="0 0 30 20" aria-hidden="true" focusable="false">
         <path
-          d="M3 11 11 3M5.5 3H11v5.5"
-          stroke="currentColor"
-          strokeWidth="1.8"
+          className="brand-route"
+          d="M5 15C9 4 21 4 25 15"
+          strokeWidth="2.6"
           fill="none"
           strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeDasharray="0.1 3.6"
         />
+        <circle cx="5" cy="15" r="3" fill="currentColor" />
+        <circle cx="25" cy="15" r="3" fill="none" stroke="currentColor" strokeWidth="2" />
       </svg>
       url-shortener
     </Link>

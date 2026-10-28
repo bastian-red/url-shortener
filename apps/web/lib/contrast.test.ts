@@ -26,6 +26,8 @@ const PAIRS = [
   ['--accent', '--accent-soft'],
   ['--danger', '--danger-soft'], // form errors
   ['--text', '--series-1-soft'], // the brush scope strip
+  ['--shell-ink', '--shell'], // the navy band: wordmark, current nav entry, ledger header
+  ['--shell-muted', '--shell'], // the navy band: the other nav entries, the account name
 ] as const;
 
 const schemes = Object.entries(SURFACES);

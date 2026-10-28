@@ -20,6 +20,7 @@ import {
   formatPercent,
 } from '../lib/format';
 import { brushRange, bucketAt } from '../lib/range';
+import { BOARD_W, ROW_H, routeBoard } from '../lib/route';
 import { heatStep, niceMax } from '../lib/spark';
 
 /**
@@ -34,10 +35,15 @@ import { heatStep, niceMax } from '../lib/spark';
  * whole range's numbers scaled down.
  */
 
-const W = 720;
+/**
+ * The timeline is drawn in CSS pixels at the width it is shown at (measured,
+ * 720 before hydration), so its 11px axis labels stay 11px on a phone instead
+ * of shrinking with a fixed viewBox to an unreadable 5px.
+ */
+const DEFAULT_W = 720;
+const MIN_W = 280;
 const H = 200;
 const PAD = { top: 10, right: 8, bottom: 24, left: 44 };
-const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 const TOP_ROWS = 6;
 
@@ -51,12 +57,13 @@ const DIMENSION_TITLES: Record<Dimension, string> = {
 
 interface Props {
   readonly linkId: string;
+  readonly slug: string;
   readonly initial: Analytics;
 }
 
 type Selection = { a: number; b: number } | null;
 
-export function Report({ linkId, initial }: Props) {
+export function Report({ linkId, slug, initial }: Props) {
   const [scope, setScope] = useState<{ from: string; to: string } | null>(null);
   const [scoped, setScoped] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -131,37 +138,54 @@ export function Report({ linkId, initial }: Props) {
       </section>
 
       <div className="breakdowns" aria-busy={loading}>
-        {(['country', 'referrer', 'device', 'browser', 'os'] as const).map((dimension) => (
-          <Breakdown key={dimension} dimension={dimension} report={view} />
-        ))}
+        <RouteBoard slug={slug} report={view} />
+        <section className="panel" aria-labelledby="audience-title">
+          <div className="panel-head">
+            <h2 id="audience-title" className="panel-title">
+              What they clicked on
+            </h2>
+          </div>
+          <div className="audience">
+            {(['device', 'browser', 'os'] as const).map((dimension) => (
+              <Breakdown key={dimension} dimension={dimension} report={view} />
+            ))}
+          </div>
+        </section>
         <WeekGrid report={view} />
       </div>
     </div>
   );
 }
 
+/**
+ * The three totals, as one strip of figures rather than three cards, each with
+ * the sentence that says what it counts. "Visitors" is the honest one to word
+ * carefully: the visitor hash rotates its key daily and the distinct set is
+ * kept per hour, so a person who clicks twice in one hour counts once, and the
+ * same person tomorrow counts again.
+ */
 function Kpis({ report }: { readonly report: Analytics }) {
   const { clicks, visitors, bots } = report.totals;
   return (
-    <div className="kpis">
+    <dl className="kpis">
       <div className="kpi">
-        <p className="kpi-label">Clicks</p>
-        <p className="kpi-value" data-testid="kpi-clicks">
+        <dt className="kpi-label">Clicks</dt>
+        <dd className="kpi-value" data-testid="kpi-clicks">
           {formatCount(clicks)}
-        </p>
-        <p className="kpi-sub">People, bots excluded</p>
+        </dd>
+        <dd className="kpi-sub">From people. Bots and link previews are left out.</dd>
       </div>
       <div className="kpi">
-        <p className="kpi-label">Visitors</p>
-        <p className="kpi-value">{formatCount(visitors)}</p>
-        <p className="kpi-sub">Distinct per hour, summed</p>
+        <dt className="kpi-label">Visitors</dt>
+        <dd className="kpi-value">{formatCount(visitors)}</dd>
+        <dd className="kpi-sub">Someone clicking twice in the same hour counts once.</dd>
       </div>
       <div className="kpi">
-        <p className="kpi-label">Bots and previews</p>
-        <p className="kpi-value">{formatCount(bots)}</p>
-        <p className="kpi-sub">Link unfurlers, crawlers</p>
+        <dt className="kpi-label">Bots and previews</dt>
+        <dd className="kpi-value">{formatCount(bots)}</dd>
+        <dd className="kpi-sub">Slack, chat and social unfurls, crawlers. Not in Clicks.</dd>
       </div>
-    </div>
+    </dl>
   );
 }
 
@@ -175,6 +199,18 @@ function Timeline({
   readonly onBrush: (range: { from: string; to: string } | null) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(DEFAULT_W);
+  useEffect(() => {
+    const element = box.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setW(Math.max(MIN_W, Math.round(entry.contentRect.width)));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const PLOT_W = W - PAD.left - PAD.right;
   const [drag, setDrag] = useState<Selection>(null);
   const [keyboard, setKeyboard] = useState<Selection>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -222,11 +258,12 @@ function Timeline({
   };
 
   const ticks = [0, 1, 2, 3, 4].map((i) => (max / 4) * i);
-  const labelEvery = Math.max(1, Math.ceil(n / 6));
+  // About one date label per 110px, so labels never collide at any width.
+  const labelEvery = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(PLOT_W / 110))));
   const hovered = hover === null ? null : series[hover];
 
   return (
-    <div className="timeline">
+    <div className="timeline" ref={box}>
       <svg
         ref={svg}
         viewBox={`0 0 ${String(W)} ${String(H)}`}
@@ -370,6 +407,24 @@ function Timeline({
   );
 }
 
+interface Shown {
+  readonly key: string;
+  readonly label: string;
+  readonly clicks: number;
+}
+
+/** The top rows of a dimension, with everything after them folded into "Other (n more)". */
+function topRows(report: Analytics, dimension: Dimension): { shown: Shown[]; total: number } {
+  const rows = report.breakdowns[dimension];
+  const total = report.totals.clicks + (rows.some((r) => r.key === 'bot') ? report.totals.bots : 0);
+  const top = rows.slice(0, TOP_ROWS);
+  const rest = rows.slice(TOP_ROWS);
+  const other = rest.reduce((sum, r) => sum + r.clicks, 0);
+  const shown = top.map((r) => ({ key: r.key, label: dimensionLabel(dimension, r.key), clicks: r.clicks }));
+  if (other > 0) shown.push({ key: '__other', label: `Other (${String(rest.length)} more)`, clicks: other });
+  return { shown, total };
+}
+
 function Breakdown({
   dimension,
   report,
@@ -377,53 +432,133 @@ function Breakdown({
   readonly dimension: Dimension;
   readonly report: Analytics;
 }) {
-  const rows = report.breakdowns[dimension];
-  const total = report.totals.clicks + (rows.some((r) => r.key === 'bot') ? report.totals.bots : 0);
-  const top = rows.slice(0, TOP_ROWS);
-  const rest = rows.slice(TOP_ROWS);
-  const other = rest.reduce((sum, r) => sum + r.clicks, 0);
-  const shown =
-    other > 0
-      ? [
-          ...top.map((r) => ({ label: dimensionLabel(dimension, r.key), clicks: r.clicks })),
-          { label: `Other (${String(rest.length)} more)`, clicks: other },
-        ]
-      : top.map((r) => ({ label: dimensionLabel(dimension, r.key), clicks: r.clicks }));
-  // Bars share one scale across the panel: the largest row fills the track.
+  const { shown, total } = topRows(report, dimension);
+  // Bars share one scale across the list: the largest row fills the track.
   const max = Math.max(1, ...shown.map((r) => r.clicks));
   const titleId = `breakdown-${dimension}`;
 
   return (
-    <section className="panel" aria-labelledby={titleId} data-dimension={dimension}>
-      <div className="panel-head">
-        <h2 id={titleId} className="panel-title">
-          {DIMENSION_TITLES[dimension]}
-        </h2>
-      </div>
+    <section className="breakdown" aria-labelledby={titleId} data-dimension={dimension}>
+      <h3 id={titleId} className="breakdown-title">
+        {DIMENSION_TITLES[dimension]}
+      </h3>
       {shown.length === 0 ? (
         <p className="breakdown-empty">No clicks in this window.</p>
       ) : (
-        <ul className="breakdown-list">
-          {shown.map((row) => (
-            <li
-              key={row.label}
-              className="breakdown-row"
-              title={`${row.label}: ${formatCount(row.clicks)} clicks, ${formatPercent(row.clicks, total)}`}
-            >
-              <span className="breakdown-label">{row.label}</span>
-              <span className="breakdown-value">
-                {formatCount(row.clicks)}
-                <span>{formatPercent(row.clicks, total)}</span>
-              </span>
-              <span className="breakdown-track" aria-hidden="true">
-                <span
-                  className="breakdown-fill"
-                  style={{ width: `${String((row.clicks / max) * 100)}%` }}
+        <BreakdownList rows={shown} total={total} max={max} />
+      )}
+    </section>
+  );
+}
+
+function BreakdownList({
+  rows,
+  total,
+  max,
+}: {
+  readonly rows: readonly Shown[];
+  readonly total: number;
+  readonly max: number;
+}) {
+  return (
+    <ul className="breakdown-list">
+      {rows.map((row) => (
+        <li
+          key={row.key}
+          className="breakdown-row"
+          title={`${row.label}: ${formatCount(row.clicks)} clicks, ${formatPercent(row.clicks, total)}`}
+        >
+          <span className="breakdown-label">{row.label}</span>
+          <span className="breakdown-value">
+            {formatCount(row.clicks)}
+            <span>{formatPercent(row.clicks, total)}</span>
+          </span>
+          <span className="breakdown-track" aria-hidden="true">
+            <span
+              className="breakdown-fill"
+              style={{ width: `${String((row.clicks / max) * 100)}%` }}
+            />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The signature: where the link travelled. Referrers fly in on the left,
+ * countries fly out on the right, the short link is the hub, and each leg is
+ * weighted by its share of its own side (lib/route.ts says why the two sides
+ * are never joined to each other). The lists are real text, so the board reads
+ * without the drawing; the drawing is decoration over them and is hidden from
+ * assistive technology, and on a phone it is dropped for the lists' own bars.
+ */
+function RouteBoard({ slug, report }: { readonly slug: string; readonly report: Analytics }) {
+  const inbound = topRows(report, 'referrer');
+  const outbound = topRows(report, 'country');
+  const board = routeBoard(inbound.shown, outbound.shown);
+  const empty = inbound.shown.length === 0 && outbound.shown.length === 0;
+  const side = (
+    dimension: 'referrer' | 'country',
+    data: { shown: Shown[]; total: number },
+  ) => {
+    const max = Math.max(1, ...data.shown.map((r) => r.clicks));
+    return (
+      <section
+        className="route-side"
+        data-side={dimension === 'referrer' ? 'in' : 'out'}
+        data-dimension={dimension}
+        aria-labelledby={`breakdown-${dimension}`}
+      >
+        <h3 id={`breakdown-${dimension}`} className="breakdown-title">
+          {dimension === 'referrer' ? 'Came from' : 'Landed in'}
+        </h3>
+        {data.shown.length === 0 ? (
+          <p className="breakdown-empty">No clicks in this window.</p>
+        ) : (
+          <BreakdownList rows={data.shown} total={data.total} max={max} />
+        )}
+      </section>
+    );
+  };
+
+  return (
+    <section className="panel route-board" aria-labelledby="routes-title" style={{ gridColumn: '1 / -1' }}>
+      <div className="panel-head">
+        <h2 id="routes-title" className="panel-title">
+          Where it travelled
+        </h2>
+        <span className="panel-note">
+          Line weight is clicks. Each side adds up on its own: who sent people, and where they were.
+        </span>
+      </div>
+      {empty ? (
+        <p className="breakdown-empty">No clicks in this window.</p>
+      ) : (
+        <div
+          className="route-grid"
+          style={{ ['--board-h' as string]: `${String(board.height)}px`, ['--row-h' as string]: `${String(ROW_H)}px` }}
+        >
+          {side('referrer', inbound)}
+          <div className="route-map" aria-hidden="true">
+            <svg viewBox={`0 0 ${String(BOARD_W)} ${String(board.height)}`} preserveAspectRatio="none">
+              {board.legs.map((leg) => (
+                <path
+                  key={`${leg.side}:${leg.key}`}
+                  className="route-leg"
+                  data-side={leg.side}
+                  d={leg.d}
+                  strokeWidth={leg.width}
+                  vectorEffect="non-scaling-stroke"
                 />
-              </span>
-            </li>
-          ))}
-        </ul>
+              ))}
+            </svg>
+            <span className="route-hub" style={{ top: board.hubY }} translate="no">
+              /{slug}
+            </span>
+          </div>
+          {side('country', outbound)}
+        </div>
       )}
     </section>
   );

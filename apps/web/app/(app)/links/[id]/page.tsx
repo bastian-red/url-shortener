@@ -51,7 +51,7 @@ export default async function LinkPage({
 
   return (
     <>
-      <AppBar user={user} />
+      <AppBar user={user} current="links" />
       <TzSync rendered={timeZone} />
       <main id="main" className="page">
         <div className="detail">
@@ -62,7 +62,7 @@ export default async function LinkPage({
               </nav>
               <h1 className="detail-title">{link.title ?? `/${link.slug}`}</h1>
               <div className="detail-short">
-                <code className="detail-short-url" data-testid="short-url">
+                <code className="detail-short-url" data-testid="short-url" translate="no">
                   {link.shortUrl}
                 </code>
                 <CopyButton value={link.shortUrl} label="Copy link" />
@@ -123,7 +123,7 @@ export default async function LinkPage({
               ))}
             </nav>
 
-            <Report linkId={link.id} initial={analytics} />
+            <Report linkId={link.id} slug={link.slug} initial={analytics} />
 
             <details className="panel">
               <summary className="panel-title" style={{ cursor: 'pointer' }}>

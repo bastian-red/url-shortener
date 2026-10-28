@@ -9,7 +9,7 @@ exactly once and keeps hourly rollups current, so a report over a million clicks
 (measured), not a million. QR codes, custom slugs, expiry, click limits, rate limiting. Next.js 16,
 NestJS, Go, PostgreSQL, Redis.
 
-![Shorten a link, a month of clicks, a brushed window, clicks arriving live, the redirect's own 410 page](assets/demo.gif)
+![Shorten a link with one paste, a month of clicks, a brushed window, where it travelled, clicks arriving live, the redirect's own 410 page](assets/demo.gif)
 
 ```mermaid
 flowchart LR
@@ -133,24 +133,39 @@ Raw clicks are range-partitioned by month (`ensure_click_partitions`, called by 
 advisory-locked against concurrent callers), with a default partition so an insert is never
 refused.
 
-## The design: the dispatch log
+## The design: the route map
 
-A shortener's user pastes a URL, shares the short one, then watches it travel. So the first page is
-a **command bar** over a **ledger**: Enter shortens, the slug appears as a pill with Copy and a QR
-code, and every row carries its last 24 hours as a sparkline and a count that ticks "+1" as clicks
-land. A link's own page is one **timeline you brush**. Drag across the bars, or use the arrow keys
-with Shift, and the totals, five breakdowns and the hour-of-week grid all re-scope to exactly those
-hours. Beside it, a **tape** lists clicks as they arrive: *14:37:12 · United Kingdom · Mobile ·
-Mobile Safari · from t.co*.
+A shortener's user pastes a URL, shares the short one, and days later asks where it travelled. The
+visual world is the mid-century airline route map: a sky-chart ground, navy map ink, one route
+red, a navy band across the top. It lends the type, the palette, the density and one signature
+move; the layout and the controls stay the standard ones a link tool's users already know.
 
-The page is rose-clay paper with signal vermilion by day and teal-black by night. Headings and big
-numbers are in Bricolage Grotesque, the interface in Schibsted Grotesk, and anything you might
-retype is in Martian Mono: slugs are case-sensitive, and a mono face keeps `l`, `I` and `1` apart.
-Every colour pair clears WCAG AA in both schemes, checked against the real stylesheet. Every status
-(active, expires soon, expired, limit reached, turned off) has a glyph and a word as well as a
-colour. Every chart has its numbers as a table, and axe runs over every route in both schemes,
-including the Go service's own 404/410 pages, with zero violations. Those pages carry real status
-codes, so a crawler can tell a slug that never existed from one that expired.
+- **Create and copy in one paste.** Paste a URL anywhere on the page (focus does not have to be in
+  the field) and it is shortened, and the short link is already on your clipboard. The result
+  strip says so in words, and keeps a Copy button for when the browser refuses the write.
+  `e2e/tests/links.spec.ts` counts the actions (one) and reads the clipboard back.
+- **The ledger is a timetable.** Slug, title, the destination drawn as a route, status as a glyph
+  and a word, the last 24 hours, the count that ticks "+1" as clicks land. A link with no clicks
+  in a day says *No clicks in 24 h* instead of drawing a flat line that looks like a quiet live one.
+- **The report.** One **timeline you brush** (drag, or the arrow keys with Shift) re-scopes every
+  number below it to exactly those hours. The totals say what they count: a visitor is someone
+  clicking, counted once per hour. Then the signature, **Where it travelled**: referrers fly in
+  on the left, countries fly out on the right, the short link is the hub, and each leg is weighted
+  by its share of its own side. The rollups hold one dimension at a time, so the board never draws
+  a referrer straight to a country, which would invent a joint distribution the data does not
+  have (`apps/web/lib/route.ts`). The lists are real text; the drawing is decoration over them and
+  is dropped on a phone for the lists' own bars. Beside it, a **tape** lists clicks as they arrive.
+
+Headings and figures are set in Jost, a geometric sans in the line of timetable and route-map
+type; the interface in Overpass, derived from the US road-sign face; anything you might retype in
+Overpass Mono, where `l`, `I` and `1` cannot be confused (slugs are case-sensitive). All three are
+self-hosted with their SIL licence. Every colour pair clears WCAG AA in both schemes, checked
+against the real stylesheet, and the palette is at least ΔE 2.5 (canvas) and 8 (accent) from every
+other project in the portfolio. Every status has a glyph and a word as well as a colour, every
+chart has its numbers as a table, no route scrolls sideways at 390 px, and axe runs over every
+route in both schemes, including the Go service's own 404/410 pages, with zero violations. Those
+pages carry real status codes, so a crawler can tell a slug that never existed from one that
+expired.
 
 ## Running it
 

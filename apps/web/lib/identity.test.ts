@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { extractTokens, resolve, stripCssComments } from './contrast';
 
 /**
- * The identity lock: rose-clay paper and signal vermilion by
- * day, teal-black by night, three grotesque-and-mono faces, 8px corners.
+ * The identity lock: "the route map". Sky-chart paper and route red by day, a
+ * night-flight navy by night, Jost / Overpass / Overpass Mono, 7px corners.
  *
  * Read out of the real stylesheet and `app/layout.tsx`. A redesign that drifts
  * compiles, renders and passes every other test; changing the identity means
@@ -25,21 +25,24 @@ export const SURFACES = {
 } as const;
 
 const IDENTITY = {
-  light: { '--bg': '#f6f0ee', '--accent': '#b33a12', '--radius': '8px' },
-  dark: { '--bg': '#0e1517', '--accent': '#ff8a5c', '--radius': '8px' },
+  light: { '--bg': '#dce8f7', '--accent': '#b50f2b', '--radius': '7px' },
+  dark: { '--bg': '#0b1a35', '--accent': '#ff6b7d', '--radius': '7px' },
 } as const;
 
-const FONTS = ['Bricolage_Grotesque', 'Martian_Mono', 'Schibsted_Grotesk'];
+const FONTS = ['Jost', 'Overpass', 'Overpass_Mono'];
 
-/** The same regex `web/scripts/identity-distinct.mjs` uses. ONE import, single-quoted. */
+/**
+ * The faces `layout.tsx` loads, read the way `web/scripts/identity-distinct.mjs` reads them: the
+ * names in a `next/font/google` import, plus the `<Face>` of every `./fonts/<Face>/` path a
+ * `next/font/local` call points at.
+ */
 function importedFaces(): string[] {
-  const line = /import\s*\{([^}]*)\}\s*from\s*'next\/font\/google'/.exec(layout);
-  if (!line) throw new Error('layout.tsx imports nothing from next/font/google');
-  return line[1]!
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .sort();
+  const faces = new Set<string>();
+  const google = /import\s*\{([^}]*)\}\s*from\s*'next\/font\/google'/.exec(layout);
+  for (const name of google?.[1]?.split(',') ?? []) if (name.trim()) faces.add(name.trim());
+  for (const m of layout.matchAll(/'\.\/fonts\/([A-Za-z0-9_]+)\//g)) faces.add(m[1]!);
+  if (faces.size === 0) throw new Error('layout.tsx loads no typeface the identity checks can see');
+  return [...faces].sort();
 }
 
 describe('visual identity', () => {
@@ -55,13 +58,29 @@ describe('visual identity', () => {
     expect(importedFaces()).toEqual(FONTS);
   });
 
-  it('keeps the one font import in the shape the cross-repo check can parse', () => {
-    expect([...layout.matchAll(/from\s*['"]next\/font\/google['"]/g)]).toHaveLength(1);
+  it('self-hosts every face, with its licence beside it, and fetches nothing from Google', () => {
+    // project010 found Turbopack's Google-font resolver failing intermittently on CI.
+    expect(layout).not.toMatch(/from\s*['"]next\/font\/google['"]/u);
+    for (const face of FONTS) {
+      const dir = join(APP, 'fonts', face);
+      const files = readdirSync(dir);
+      expect(files.filter((f) => f.endsWith('.woff2')), `${face} woff2`).not.toHaveLength(0);
+      expect(readFileSync(join(dir, 'OFL.txt'), 'utf8'), `${face} licence`).toMatch(/SIL Open Font License/u);
+    }
   });
 
   it('wires each face to the variable the stylesheet reads', () => {
     for (const variable of ['--font-display', '--font-ui', '--font-mono']) {
       expect(layout).toContain(`variable: '${variable}'`);
+    }
+  });
+
+  it('paints the browser chrome with the canvas in each scheme', () => {
+    for (const scheme of ['light', 'dark'] as const) {
+      const bg = resolve(SURFACES[scheme], '--bg').toLowerCase();
+      expect(layout, `${scheme} theme-color`).toContain(
+        `{ media: '(prefers-color-scheme: ${scheme})', color: '${bg}' }`,
+      );
     }
   });
 
@@ -72,7 +91,7 @@ describe('visual identity', () => {
 });
 
 /**
- * What the rest of the portfolio already spent (001-008). The cross-repo script
+ * What the rest of the portfolio already spent (001-008, 010). The cross-repo script
  * is the authority; this is the half a single repo can check in its own gate.
  */
 const SPENT = {
@@ -95,6 +114,8 @@ const SPENT = {
     '#1b1b1d',
     '#fbf3ea',
     '#1b1714',
+    '#e1f7f2',
+    '#021409',
   ],
   accents: [
     '#4f46e5',
@@ -115,6 +136,8 @@ const SPENT = {
     '#b9c95a',
     '#8a5a00',
     '#e6b450',
+    '#5a4590',
+    '#b9a6ee',
   ],
   faces: [
     'Fraunces',
@@ -140,8 +163,11 @@ const SPENT = {
     'Lora',
     'Hanken_Grotesk',
     'Geist_Mono',
+    'Space_Grotesk',
+    'Atkinson_Hyperlegible_Next',
+    'Fira_Code',
   ],
-  radii: ['10px', '2px', '6px', '4px', '12px', '3px', '16px'],
+  radii: ['10px', '2px', '6px', '4px', '12px', '3px', '16px', '5px'],
 } as const;
 
 describe('no two projects share an identity', () => {

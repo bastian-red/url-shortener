@@ -1,9 +1,12 @@
 /*
- * url-shortener: "the dispatch log" (README: "The design").
+ * url-shortener: "the route map" (docs/DESIGN.md; README: "The design").
  *
- * One surface. The people who use this paste a URL, share the short one, then
- * watch it travel, so the page is a command bar over a ledger of links, and a
- * link's own page is a timeline you brush plus a tape of clicks arriving.
+ * The people who use this paste a URL, share the short one, then ask where it
+ * travelled. The world is the mid-century airline route map: a sky-chart
+ * ground, navy map ink, one route red. It lends type, palette, density and one
+ * signature move, the report's route board (referrers fly in, countries fly
+ * out, the short link is the hub); the layout and the controls stay the
+ * standard ones a link tool's users already know.
  *
  * Every colour pair below is checked against WCAG AA in both schemes by
  * lib/contrast.test.ts, which reads THIS file; the canvas, accent, radius and
@@ -14,44 +17,52 @@
  */
 
 :root {
-  /* Rose-clay paper: warm but not the cream every other warm project spent. */
-  --bg: #f6f0ee;
-  --surface: #fffbfa;
-  --surface-2: #efe6e2;
-  --text: #231a18;
-  --muted: #6a5a55;
-  /* Control and card edges: 3.48:1 or better on every background. */
-  --border: #8a7671;
+  /* Sky-chart paper: the pale blue of a route map's sea, not a grey dashboard
+     and not the cream every warm generator reaches for. */
+  --bg: #dce8f7;
+  --surface: #f4f8fd;
+  --surface-2: #cddbee;
+  --text: #0f2140;
+  --muted: #4a5d78;
+  /* Control and card edges: 3:1 or better on every background. */
+  --border: #5f7290;
   /* Decorative rules between ledger rows only, never a control boundary. */
-  --hairline: #e6d9d4;
+  --hairline: #c3d2e6;
 
-  /* Signal vermilion: the colour of a thing being sent. */
-  --accent: #b33a12;
-  --accent-hover: #962f0d;
+  /* The shell: the navy band a route map prints its title on. */
+  --shell: #0f2140;
+  --shell-ink: #f4f8fd;
+  --shell-muted: #b9c8de;
+  /* Route red lifted for the navy band: --accent on --shell would be 2.4:1. */
+  --shell-route: #ff8a98;
+
+  /* Route red: the line drawn from here to there. */
+  --accent: #b50f2b;
+  --accent-hover: #940c23;
   --accent-ink: #ffffff;
-  --accent-soft: #f8ddd2;
+  --accent-soft: #fbe1e5;
 
-  /* Collapses against the accent (1.10:1), which is why every error carries ⚠ and a sentence. */
-  --danger: #b4232f;
-  --danger-soft: #fbe0e1;
-  --ok: #2f6b1f;
+  /* Collapses against the accent (1.1:1), which is why every error carries ⚠ and a sentence. */
+  --danger: #a8122a;
+  --danger-soft: #fbe1e5;
+  --ok: #1e6b34;
   --warn: #8a5300;
 
-  /* dataviz: one series, slot 1 of the validated categorical palette. */
-  --series-1: #2a78d6;
-  --series-1-soft: #d6e6f9;
+  /* dataviz: one series in map ink, so data never wears the action colour. */
+  --series-1: #285a9e;
+  --series-1-soft: #d3e1f3;
   /* Sequential ramp for the hour-of-week grid, near-zero to peak. */
-  --heat-0: #efe6e2;
-  --heat-1: #cde2fb;
-  --heat-2: #9ec5f4;
-  --heat-3: #5598e7;
-  --heat-4: #256abf;
-  --heat-5: #104281;
-  --brush: rgb(42 120 214 / 0.16);
+  --heat-0: #cddbee;
+  --heat-1: #93b0dc;
+  --heat-2: #6d93cd;
+  --heat-3: #4a77b8;
+  --heat-4: #2d5c9f;
+  --heat-5: #163f78;
+  --brush: rgb(40 90 158 / 0.14);
 
-  --radius: 8px;
+  --radius: 7px;
   --radius-pill: 999px;
-  --shadow: 0 1px 0 rgb(35 26 24 / 0.04), 0 6px 18px -10px rgb(35 26 24 / 0.25);
+  --shadow: 0 1px 0 rgb(15 33 64 / 0.05), 0 8px 20px -12px rgb(15 33 64 / 0.3);
 
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-heading: var(--font-display), var(--font-ui), ui-sans-serif, system-ui, sans-serif;
@@ -62,34 +73,39 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Deep teal-black: an instrument panel at night, not a grey dashboard. */
-    --bg: #0e1517;
-    --surface: #152023;
-    --surface-2: #1d2b2f;
-    --text: #eef3f2;
-    --muted: #9fb1b2;
-    --border: #6c8286;
-    --hairline: #24353a;
+    /* Night-flight navy: the same chart with the cabin lights off. */
+    --bg: #0b1a35;
+    --surface: #112447;
+    --surface-2: #183056;
+    --text: #eaf1fb;
+    --muted: #9fb2cc;
+    --border: #6a809f;
+    --hairline: #23406a;
 
-    --accent: #ff8a5c;
-    --accent-hover: #ffa682;
-    --accent-ink: #1a0a03;
-    --accent-soft: #3a2219;
+    --shell: #061226;
+    --shell-ink: #eaf1fb;
+    --shell-muted: #9fb2cc;
+    --shell-route: #ff6b7d;
+
+    --accent: #ff6b7d;
+    --accent-hover: #ff8a98;
+    --accent-ink: #2a0008;
+    --accent-soft: #3a1622;
 
     --danger: #ff7b84;
-    --danger-soft: #3a1b1f;
-    --ok: #7fd36a;
+    --danger-soft: #3a1622;
+    --ok: #74d38c;
     --warn: #f0b44c;
 
-    --series-1: #3987e5;
-    --series-1-soft: #1b3550;
-    --heat-0: #1d2b2f;
-    --heat-1: #104281;
-    --heat-2: #1c5cab;
-    --heat-3: #2a78d6;
-    --heat-4: #5598e7;
-    --heat-5: #9ec5f4;
-    --brush: rgb(57 135 229 / 0.22);
+    --series-1: #5a92e6;
+    --series-1-soft: #1b3a63;
+    --heat-0: #183056;
+    --heat-1: #3a67a6;
+    --heat-2: #5281c6;
+    --heat-3: #6d9be0;
+    --heat-4: #94b9f0;
+    --heat-5: #c2d8f8;
+    --brush: rgb(90 146 230 / 0.2);
 
     --shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
 
@@ -115,16 +131,16 @@ body {
   background: var(--bg);
   color: var(--text);
   font: 15px/1.5 var(--font-sans);
-  font-feature-settings: 'ss01';
   -webkit-font-smoothing: antialiased;
 }
 
 h1,
 h2,
 h3 {
+  text-wrap: balance;
   font-family: var(--font-heading);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.15;
   margin: 0;
 }
@@ -183,78 +199,115 @@ code,
   color: var(--accent-ink);
 }
 
+a,
+button,
+summary,
+input,
+select {
+  touch-action: manipulation;
+}
+
 /* Disclosures are controls: WCAG 2.2 target size wants 24px, and a bare
    summary at 13px text is about 20. axe caught it on the command bar. */
 summary {
   padding: 4px 0;
 }
 
-/* --- app bar ----------------------------------------------------------------- */
+/* --- app bar: the navy band ------------------------------------------------ */
 
 .app-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  padding: 14px max(16px, calc((100vw - 1180px) / 2));
-  border-bottom: 1px solid var(--hairline);
-  background: var(--surface);
+  gap: 8px 16px;
+  padding: 12px max(16px, calc((100vw - 1180px) / 2));
+  background: var(--shell);
+  color: var(--shell-ink);
+}
+
+.app-bar :focus-visible {
+  outline-color: var(--shell-ink);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   color: var(--text);
   text-decoration: none;
   font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .brand:hover {
   color: var(--text);
 }
 
+/* On the navy band the wordmark takes the band's ink; elsewhere (sign-in, 404) the page's. */
+.app-bar .brand,
+.app-bar .brand:hover {
+  color: var(--shell-ink);
+}
+
+/* Two airports and the arc between them: what a short link does. */
 .brand-mark {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  padding: 6px;
+  width: 30px;
+  height: 20px;
+}
+
+.brand-mark .brand-route {
+  stroke: var(--accent);
+}
+
+.app-bar .brand-mark .brand-route {
+  stroke: var(--shell-route);
 }
 
 .app-bar-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin-left: auto;
 }
 
 .app-bar-nav a,
 .app-bar-nav button {
+  min-height: 32px;
   padding: 6px 10px;
   border-radius: var(--radius);
-  color: var(--muted);
+  color: var(--shell-muted);
   text-decoration: none;
   font: inherit;
   font-size: 14px;
+  font-weight: 600;
   background: none;
   border: 0;
   cursor: pointer;
 }
 
 .app-bar-nav a:hover,
-.app-bar-nav button:hover {
-  color: var(--text);
-  background: var(--surface-2);
+.app-bar-nav button:hover,
+.app-bar-nav a[aria-current='page'] {
+  color: var(--shell-ink);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.app-bar-nav a[aria-current='page'] {
+  box-shadow: inset 0 -2px 0 var(--shell-ink);
 }
 
 .app-bar-user {
-  color: var(--muted);
+  color: var(--shell-muted);
   font-size: 14px;
   padding: 0 6px;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page {
@@ -419,12 +472,12 @@ summary {
   font-size: 13px;
 }
 
-/* --- the command bar --------------------------------------------------------- */
+/* --- the command bar ------------------------------------------------------- */
 
 .command {
   display: grid;
   gap: 12px;
-  padding: 18px;
+  padding: 18px 20px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -432,10 +485,25 @@ summary {
 }
 
 .command-title {
-  font-size: 15px;
+  font-size: 13px;
   font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.command-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.command-hint {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .command-row {
@@ -446,16 +514,16 @@ summary {
 .command-input {
   flex: 1;
   min-width: 0;
-  min-height: 48px;
-  padding: 10px 14px;
+  min-height: 52px;
+  padding: 10px 16px;
   font-family: var(--font-code);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .command-row .button {
-  min-height: 48px;
-  padding: 0 22px;
-  font-size: 15px;
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 16px;
 }
 
 .command-options summary {
@@ -512,23 +580,73 @@ summary {
   outline: none;
 }
 
+/* The result: the short link set large, its route underneath, the actions beside. */
 .created {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 6px 16px;
+  padding: 14px 16px;
   border-radius: var(--radius);
-  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--surface-2);
   color: var(--text);
 }
 
 .created-label {
-  font-weight: 600;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .created-label::before {
   content: '✓ ';
+  color: var(--ok);
+}
+
+.created-route {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.created-url {
+  font-family: var(--font-code);
+  font-size: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.created-dest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.created-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* A route: a dotted leg from a filled origin to the destination, in map ink. */
+.route-line {
+  flex: none;
+  display: inline-block;
+  width: 26px;
+  height: 8px;
+  background:
+    radial-gradient(circle, var(--series-1) 2.5px, transparent 3px) 0 50% / 8px 8px no-repeat,
+    radial-gradient(circle, var(--series-1) 1px, transparent 1.5px) 8px 50% / 4px 4px repeat-x;
 }
 
 /* --- slug pill ---------------------------------------------------------------- */
@@ -590,18 +708,19 @@ a.slug-pill:hover {
   color: var(--muted);
 }
 
-/* --- the ledger --------------------------------------------------------------- */
+/* --- the ledger: the timetable ---------------------------------------------- */
 
 .ledger-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px 12px;
   margin: 36px 0 12px;
 }
 
 .ledger-title {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .ledger-meta {
@@ -621,13 +740,13 @@ a.slug-pill:hover {
 
 .ledger th {
   padding: 10px 16px;
-  background: var(--surface-2);
-  color: var(--muted);
+  background: var(--shell);
+  color: var(--shell-ink);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .ledger td {
@@ -638,6 +757,10 @@ a.slug-pill:hover {
 
 .ledger tr:first-child td {
   border-top: 0;
+}
+
+.ledger tbody tr:hover td {
+  background: color-mix(in oklab, var(--surface-2) 45%, var(--surface));
 }
 
 .ledger .num {
@@ -672,18 +795,37 @@ a.slug-pill:hover {
 }
 
 .ledger-dest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 48ch;
+  max-width: 52ch;
 }
 
 .ledger-empty {
   padding: 40px 16px;
   text-align: center;
   color: var(--muted);
+}
+
+.spark-wrap {
+  display: grid;
+  gap: 2px;
+}
+
+.spark-total {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.spark-idle {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
 }
 
 .sparkline {
@@ -712,7 +854,8 @@ a.slug-pill:hover {
   justify-content: flex-end;
   gap: 8px;
   font-family: var(--font-code);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -864,39 +1007,51 @@ a.slug-pill:hover {
   box-shadow: var(--shadow);
 }
 
+/* The totals: one strip of figures, like a fare table's header row. */
 .kpis {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.kpi {
-  padding: 14px 16px;
+  margin: 0;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
 }
 
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 14px 18px;
+}
+
+.kpi + .kpi {
+  border-left: 1px solid var(--hairline);
+}
+
 .kpi-label {
   margin: 0;
   color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .kpi-value {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-family: var(--font-heading);
-  font-size: 30px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
 .kpi-sub {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 12.5px;
+  line-height: 1.4;
 }
 
 /* --- the timeline ------------------------------------------------------------- */
@@ -999,12 +1154,28 @@ a.slug-pill:hover {
   font-weight: 700;
 }
 
-/* --- breakdowns --------------------------------------------------------------- */
+/* --- breakdowns ---------------------------------------------------------------- */
 
 .breakdowns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+}
+
+.audience {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.breakdown-title {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .breakdown-list {
@@ -1019,7 +1190,7 @@ a.slug-pill:hover {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 4px 10px;
   align-items: center;
   padding: 2px 0;
 }
@@ -1062,6 +1233,90 @@ a.slug-pill:hover {
   margin: 0;
   color: var(--muted);
   font-size: 13.5px;
+}
+
+/* --- the route board: referrers in, the hub, countries out ------------------------ */
+
+.route-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 1.1fr) minmax(0, 1fr);
+  column-gap: 0;
+}
+
+.route-side .breakdown-title {
+  height: 28px;
+  margin: 0;
+}
+
+.route-side .breakdown-list {
+  height: var(--board-h, 44px);
+  align-content: center;
+  gap: 0;
+}
+
+/* A row is exactly one leg tall, so the leg in lib/route.ts ends on its row. */
+.route-side .breakdown-row {
+  height: var(--row-h, 44px);
+  padding: 0;
+  grid-template-rows: auto;
+}
+
+.route-side .breakdown-track {
+  display: none;
+}
+
+.route-side[data-side='in'] .breakdown-row {
+  padding-right: 12px;
+}
+
+.route-side[data-side='in'] .breakdown-label {
+  text-align: right;
+}
+
+.route-side[data-side='out'] .breakdown-row {
+  padding-left: 12px;
+}
+
+.route-map {
+  position: relative;
+  height: var(--board-h, 44px);
+  margin-top: 28px;
+}
+
+.route-map svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.route-leg {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.route-leg[data-side='out'] {
+  stroke-dasharray: none;
+}
+
+.route-hub {
+  position: absolute;
+  left: 50%;
+  translate: -50% -50%;
+  max-width: 90%;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-code);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 details.data-table {
@@ -1364,10 +1619,63 @@ details.data-table summary:hover {
   }
 }
 
+@media (max-width: 900px) {
+  .audience {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .breakdowns,
   .kpis {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpi + .kpi {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .created {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .created-actions {
+    justify-content: flex-start;
+  }
+
+  /* On a phone the drawing goes; the two lists keep their own bars. */
+  .route-grid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 20px;
+  }
+
+  .route-map {
+    display: none;
+  }
+
+  .route-side .breakdown-list {
+    height: auto;
+    gap: 8px;
+  }
+
+  .route-side .breakdown-row,
+  .route-side[data-side='in'] .breakdown-row {
+    height: auto;
+    padding: 2px 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .route-side[data-side='in'] .breakdown-label {
+    text-align: left;
+  }
+
+  .route-side .breakdown-track {
+    display: block;
+  }
+
+  .brand {
+    font-size: 16px;
   }
 
   .command-row {
@@ -1395,8 +1703,17 @@ details.data-table summary:hover {
     border: 0;
   }
 
-  .ledger td.spark-cell {
+  /* The day's line goes, its words stay: "No clicks in 24 h" matters most on a phone. */
+  .ledger tr {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .ledger td.spark-cell .sparkline {
     display: none;
+  }
+
+  .ledger td.spark-cell {
+    font-size: 12.5px;
   }
 
   .ledger td.link-cell {

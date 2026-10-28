@@ -24,6 +24,23 @@ export function formatPercent(part: number, whole: number): string {
   return `${pct < 10 && pct > 0 ? pct.toFixed(1) : Math.round(pct).toString()}%`;
 }
 
+/**
+ * A probe latency for the status page. Probes report whole milliseconds, so a
+ * fast local check reads 0, and "0 ms" looks like a probe that never ran.
+ */
+export function formatLatency(ms: number): string {
+  return ms < 1 ? '<1 ms' : `${count.format(ms)} ms`;
+}
+
+/**
+ * The 24-hour cell of a ledger row, in words: a link with no clicks says so
+ * instead of drawing a flat line that looks the same as a quiet live one.
+ */
+export function last24hSummary(values: readonly number[]): { total: number; text: string } {
+  const total = values.reduce((a, b) => a + b, 0);
+  return { total, text: total === 0 ? 'No clicks in 24 h' : `${count.format(total)} in 24 h` };
+}
+
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
 /** "GB" -> "United Kingdom"; "" -> "Unknown". */

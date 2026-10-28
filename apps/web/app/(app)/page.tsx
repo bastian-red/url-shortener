@@ -9,7 +9,7 @@ import { Sparkline } from '../../components/sparkline';
 import { StatusBadge } from '../../components/status-badge';
 import { apiFetch } from '../../lib/api';
 import { shortOrigin } from '../../lib/config';
-import { formatCount, shortDestination } from '../../lib/format';
+import { formatCount, last24hSummary, shortDestination } from '../../lib/format';
 import { requireUser } from '../../lib/session';
 import { createLinkAction } from './actions';
 
@@ -30,7 +30,7 @@ export default async function LedgerPage({
 
   return (
     <>
-      <AppBar user={user} />
+      <AppBar user={user} current="links" />
       <main id="main" className="page">
         <CommandBar action={createLinkAction} shortOrigin={shortOrigin} />
         {params.deleted === '1' ? (
@@ -74,6 +74,7 @@ export default async function LedgerPage({
                         <div className="ledger-link-title">
                           <Link
                             className="slug-pill"
+                            translate="no"
                             href={`/links/${link.id}`}
                             aria-label={`/${link.slug}, open its clicks`}
                           >
@@ -83,8 +84,10 @@ export default async function LedgerPage({
                             <Link href={`/links/${link.id}`}>{link.title}</Link>
                           )}
                         </div>
-                        <span className="ledger-dest" title={link.url}>
-                          → {shortDestination(link.url)}
+                        <span className="ledger-dest" title={link.url} translate="no">
+                          <span className="route-line" aria-hidden="true" />
+                          <span className="visually-hidden">Goes to </span>
+                          {shortDestination(link.url)}
                         </span>
                       </div>
                     </td>
@@ -92,7 +95,7 @@ export default async function LedgerPage({
                       <StatusBadge status={link.status} />
                     </td>
                     <td className="spark-cell">
-                      <Sparkline values={link.last24h} />
+                      <Last24h values={link.last24h} />
                     </td>
                     <td className="num">
                       <LiveCount linkId={link.id} initial={link.clicks} />
@@ -106,5 +109,25 @@ export default async function LedgerPage({
       </main>
       <Footer />
     </>
+  );
+}
+
+/** A quiet link says so; a moving one draws its day and states its total. */
+function Last24h({ values }: { readonly values: readonly number[] }) {
+  const { total, text } = last24hSummary(values);
+  if (total === 0) {
+    return (
+      <span className="spark-idle" data-idle="true">
+        {text}
+      </span>
+    );
+  }
+  return (
+    <span className="spark-wrap">
+      <Sparkline values={values} />
+      <span className="spark-total tabular" aria-hidden="true">
+        {text}
+      </span>
+    </span>
   );
 }

@@ -14,7 +14,9 @@ import {
   dimensionLabel,
   formatCompact,
   formatCount,
+  formatLatency,
   formatPercent,
+  last24hSummary,
   shortDestination,
   STATUS_DISPLAY,
 } from './format';
@@ -64,5 +66,23 @@ describe('status display', () => {
     const glyphs = LINK_STATUSES.map((s) => STATUS_DISPLAY[s].glyph);
     expect(new Set(glyphs).size).toBe(LINK_STATUSES.length);
     for (const s of LINK_STATUSES) expect(STATUS_DISPLAY[s].word.length).toBeGreaterThan(3);
+  });
+});
+
+describe('status probes', () => {
+  it('never prints a probe as 0 ms, which reads as one that did not run', () => {
+    expect(formatLatency(0)).toBe('<1 ms');
+    expect(formatLatency(98)).toBe('98 ms');
+    expect(formatLatency(1234)).toBe('1,234 ms');
+  });
+});
+
+describe('the ledger 24-hour cell', () => {
+  it('says "no clicks" instead of drawing a flat line', () => {
+    expect(last24hSummary(Array.from({ length: 24 }, () => 0))).toEqual({
+      total: 0,
+      text: 'No clicks in 24 h',
+    });
+    expect(last24hSummary([3, 0, 1204])).toEqual({ total: 1207, text: '1,207 in 24 h' });
   });
 });

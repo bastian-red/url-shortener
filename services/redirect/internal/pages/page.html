@@ -11,22 +11,22 @@
    covers this page in both schemes. No web fonts: an error page should not
    send a visitor's address to a font host. */
 :root {
-  --bg: #f6f0ee;
-  --surface: #fffbfa;
-  --text: #231a18;
-  --muted: #6a5a55;
-  --accent: #b33a12;
-  --border: #8a7671;
+  --bg: #dce8f7;
+  --surface: #f4f8fd;
+  --text: #0f2140;
+  --muted: #4a5d78;
+  --accent: #b50f2b;
+  --border: #5f7290;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1517;
-    --surface: #152023;
-    --text: #eef3f2;
-    --muted: #9fb1b2;
-    --accent: #ff8a5c;
-    --border: #6c8286;
+    --bg: #0b1a35;
+    --surface: #112447;
+    --text: #eaf1fb;
+    --muted: #9fb2cc;
+    --accent: #ff6b7d;
+    --border: #6a809f;
     color-scheme: dark;
   }
 }
@@ -34,21 +34,21 @@
 body {
   margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
   background: var(--bg); color: var(--text);
-  font: 16px/1.5 "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 main {
   width: 100%; max-width: 520px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 8px; padding: 32px 28px;
+  border: 1px solid var(--border); border-radius: 7px; padding: 32px 28px;
 }
 .code {
   display: inline-flex; gap: 8px; align-items: center; margin: 0 0 16px;
-  font: 600 13px/1 "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--muted); letter-spacing: .02em;
 }
 .glyph { font-size: 18px; color: var(--accent); }
 h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: -.01em; }
 p { margin: 0 0 20px; color: var(--muted); }
-.slug { font-family: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); overflow-wrap: anywhere; }
+.slug { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); overflow-wrap: anywhere; }
 a { color: var(--accent); font-weight: 600; text-underline-offset: 3px; }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 </style>

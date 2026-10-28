@@ -4,7 +4,7 @@ import { statusSchema, type Status } from '@links/shared';
 
 import { Brand } from '../../components/brand';
 import { apiBaseUrl } from '../../lib/config';
-import { formatCount } from '../../lib/format';
+import { formatCount, formatLatency } from '../../lib/format';
 
 export const metadata = { title: 'Status' };
 export const dynamic = 'force-dynamic';
@@ -44,6 +44,9 @@ export default async function StatusPage() {
         <Brand />
         <nav className="app-bar-nav" aria-label="Site">
           <Link href="/">Links</Link>
+          <Link href="/status" aria-current="page">
+            Status
+          </Link>
         </nav>
       </header>
       <main id="main" className="page" style={{ display: 'grid', gap: 20 }}>
@@ -110,7 +113,7 @@ export default async function StatusPage() {
                             )}
                           </span>
                           <span className="tabular mono">
-                            {check.status === 'ok' ? `${String(check.latencyMs)} ms` : 'failing'}
+                            {check.status === 'ok' ? formatLatency(check.latencyMs) : 'failing'}
                           </span>
                         </li>
                       ))}

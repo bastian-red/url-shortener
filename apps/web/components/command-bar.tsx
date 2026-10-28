@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import type { CreateState } from '../app/(app)/actions';
+import { looksLikeUrl } from '../lib/paste';
 import { CopyButton } from './copy-button';
 
 interface Props {
@@ -15,6 +16,12 @@ interface Props {
  * the top of the first page with the input focused. The options (custom slug,
  * expiry, click limit) are one disclosure away and never in the way.
  *
+ * Two actions, measured by `e2e/tests/links.spec.ts`: a paste (anywhere on the
+ * page, not only into the field) and Enter. The new short link is then already
+ * on the clipboard; the strip says so in words, and keeps a Copy button for
+ * when the browser refused the write (no permission, or the action outlived
+ * the paste's user activation).
+ *
  * A server action through `useActionState`, so it works as a plain POST before
  * hydration and the result renders in place after.
  */
@@ -25,23 +32,55 @@ export function CommandBar({ action, shortOrigin }: Props) {
     created: null,
   });
   const form = useRef<HTMLFormElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const offset = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState<'yes' | 'no' | null>(null);
 
   useEffect(() => {
     if (offset.current) offset.current.value = String(new Date().getTimezoneOffset());
   }, []);
 
   useEffect(() => {
-    if (state.created) form.current?.reset();
+    if (!state.created) return;
+    form.current?.reset();
+    setCopied(null);
+    let cancelled = false;
+    navigator.clipboard.writeText(state.created.shortUrl).then(
+      () => !cancelled && setCopied('yes'),
+      () => !cancelled && setCopied('no'),
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [state.created]);
+
+  // Paste anywhere: a URL pasted while focus is not in a text field lands in
+  // the command bar and is shortened. Pasting into a field keeps its meaning.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      const text = event.clipboardData?.getData('text/plain').trim() ?? '';
+      if (!looksLikeUrl(text) || !input.current || !form.current) return;
+      event.preventDefault();
+      input.current.value = text;
+      input.current.focus();
+      form.current.requestSubmit();
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, []);
 
   const invalid = (field: string) => (state.field === field ? true : undefined);
 
   return (
     <section className="command" aria-labelledby="command-title">
-      <h1 id="command-title" className="command-title">
-        Shorten a link
-      </h1>
+      <div className="command-head">
+        <h1 id="command-title" className="command-title">
+          Shorten a link
+        </h1>
+        <span className="command-hint">Paste anywhere on this page, then press Enter</span>
+      </div>
       <form ref={form} action={formAction} className="command-form" noValidate>
         <input ref={offset} type="hidden" name="tzOffset" defaultValue="0" />
         <div className="command-row">
@@ -49,6 +88,7 @@ export function CommandBar({ action, shortOrigin }: Props) {
             Destination URL
           </label>
           <input
+            ref={input}
             id="url"
             name="url"
             className="field-input command-input"
@@ -56,14 +96,14 @@ export function CommandBar({ action, shortOrigin }: Props) {
             inputMode="url"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Paste a long URL, e.g. https://example.com/a/very/long/path"
+            placeholder="Paste a long URL…"
             required
             autoFocus
             aria-invalid={invalid('url')}
             aria-describedby={state.error ? 'command-error' : undefined}
           />
           <button className="button button-primary" type="submit" disabled={pending}>
-            {pending ? 'Shortening' : 'Shorten'}
+            {pending ? 'Shortening…' : 'Shorten'}
           </button>
         </div>
         <details className="command-options">
@@ -131,23 +171,39 @@ export function CommandBar({ action, shortOrigin }: Props) {
         )}
       </form>
       {state.created === null ? null : (
-        <div className="created" role="status">
-          <span className="created-label">Short link ready</span>
-          <a className="slug-pill" href={`/links/${state.created.id}`}>
-            {state.created.slug}
-          </a>
-          <code className="mono" data-testid="created-short-url">
-            {state.created.shortUrl}
-          </code>
-          <CopyButton value={state.created.shortUrl} label="Copy link" />
-          <a
-            className="button button-small"
-            href={`/api/links/${state.created.id}/qr?format=png&size=1024&download=1`}
-          >
-            QR code
-          </a>
+        <div className="created" role="status" data-copied={copied ?? undefined}>
+          <p className="created-label">
+            {copied === 'yes'
+              ? 'Short link ready, and copied to your clipboard'
+              : copied === 'no'
+                ? 'Short link ready. Copy it below.'
+                : 'Short link ready'}
+          </p>
+          <div className="created-route">
+            <code className="created-url" data-testid="created-short-url" translate="no">
+              {state.created.shortUrl}
+            </code>
+            <span className="created-dest" title={state.created.url} translate="no">
+              <span className="route-line" aria-hidden="true" />
+              <span className="visually-hidden">Goes to </span>
+              {state.created.url.replace(/^https?:\/\//u, '')}
+            </span>
+          </div>
+          <div className="created-actions">
+            <CopyButton value={state.created.shortUrl} label="Copy link" />
+            <a
+              className="button button-small"
+              href={`/api/links/${state.created.id}/qr?format=png&size=1024&download=1`}
+            >
+              QR code
+            </a>
+            <a className="button button-small" href={`/links/${state.created.id}`}>
+              Open its report
+            </a>
+          </div>
         </div>
       )}
     </section>
   );
 }
+

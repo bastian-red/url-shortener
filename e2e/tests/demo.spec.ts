@@ -50,7 +50,10 @@ const VISITORS = [
   },
 ];
 
-test('demo', async ({ page, request }) => {
+test('demo', async ({ page, context, request }) => {
+  // A person's browser lets a page write the clipboard right after their paste;
+  // the headless one needs the grant, or the first frame shows the fallback.
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await signIn(page);
   await shorten(
     page,
@@ -74,6 +77,10 @@ test('demo', async ({ page, request }) => {
   await page.mouse.wheel(0, 360);
   await frame(page, '03-brushed');
 
+  // The route board for that window: referrers in, the hub, countries out.
+  await page.locator('.route-board').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await frame(page, '04-routes');
+
   await page.mouse.wheel(0, -2000);
   await expect(page.getByTestId('tape-state')).toHaveText(/Live/u);
   for (const v of VISITORS) {
@@ -88,12 +95,12 @@ test('demo', async ({ page, request }) => {
     await page.waitForTimeout(250);
   }
   await expect(page.getByTestId('tape').locator('.tape-item')).toHaveCount(VISITORS.length);
-  await frame(page, '04-live');
+  await frame(page, '05-live');
 
   await page.goto('/status');
   await expect(page.getByTestId('overall')).toBeVisible();
-  await frame(page, '05-status');
+  await frame(page, '06-status');
 
   await page.goto(`${SHORT_BASE_URL}/old-promo`);
-  await frame(page, '06-redirect-410');
+  await frame(page, '07-redirect-410');
 });
