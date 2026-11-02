@@ -17,6 +17,7 @@
 # playing the proxy), which is how real traffic is keyed.
 #
 # Usage: ./scripts/e2e.sh [playwright args...]
+#        E2E_API_PORT=4010 E2E_WEB_PORT=3010 ./scripts/e2e.sh   (when 4000/3000 are taken)
 set -euo pipefail
 set -m # each background job leads its own process group, so cleanup kills the whole tree
 
@@ -46,6 +47,19 @@ cleanup() {
 trap cleanup EXIT
 
 # Caller env > .env > .env.example (scripts/load-env.sh says why).
+# E2E_API_PORT / E2E_WEB_PORT move the lane off 4000 / 3000, which another
+# project's containers may hold. Each sets the port AND every URL .env derives
+# from it: .env names those URLs literally, so a bare API_PORT=4010 would move
+# the server and leave the web app, Auth.js and Playwright on the old port.
+# Set before load-env.sh, because the caller's environment wins there.
+if [[ -n "${E2E_API_PORT:-}" ]]; then
+  export API_PORT="$E2E_API_PORT" API_BASE_URL="http://localhost:${E2E_API_PORT}"
+fi
+if [[ -n "${E2E_WEB_PORT:-}" ]]; then
+  export WEB_PORT="$E2E_WEB_PORT" APP_BASE_URL="http://localhost:${E2E_WEB_PORT}"
+  export AUTH_URL="$APP_BASE_URL"
+fi
+
 # shellcheck source=scripts/load-env.sh
 . scripts/load-env.sh
 
